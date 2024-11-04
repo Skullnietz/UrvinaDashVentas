@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use Yajra\DataTables\DataTables;
 
 
 class DashVentasController extends Controller
@@ -488,4 +489,100 @@ $clientesMenorRentabilidad = $clientesMenorRentabilidadQuery->groupBy('Cte.Nombr
     public function VentasPerMesView(){
         return view("dashventas.ventaspermes");
     }
+    public function obtenerDatosAgente(Request $request)
+    {
+        if ($request->ajax()) {
+            $query = DB::table('Cuadernillo')
+            ->join('Cte', 'Cuadernillo.Cliente', '=', 'Cte.Cliente')
+            ->join('Agente', 'Cuadernillo.Agente', '=', 'Agente.Agente')
+            ->addSelect(
+                'Agente.Nombre',         // Selecciona el nombre del agente sin alias
+                'Cte.NombreCorto',       // Selecciona el nombre corto del cliente sin alias
+                DB::raw('SUM(Cuadernillo.Cantidad * Cuadernillo.Precio * Cuadernillo.TipoCambio) as Importe'),
+                DB::raw('SUM(Cuadernillo.Cantidad * Cuadernillo.CostoReal * Cuadernillo.TipoCambio) as Costo'),
+                DB::raw('SUM(Cuadernillo.Cantidad * Cuadernillo.Precio * Cuadernillo.TipoCambio) - SUM(Cuadernillo.Cantidad * Cuadernillo.CostoReal * Cuadernillo.TipoCambio) as Utilidad'),
+                DB::raw('(SUM(Cuadernillo.Cantidad * Cuadernillo.Precio * Cuadernillo.TipoCambio) - SUM(Cuadernillo.Cantidad * Cuadernillo.CostoReal * Cuadernillo.TipoCambio)) / NULLIF(SUM(Cuadernillo.Cantidad * Cuadernillo.CostoReal * Cuadernillo.TipoCambio), 0) * 100 as Rentabilidad')
+            )
+            ->groupBy('Agente.Nombre', 'Cte.NombreCorto');
+
+            // Aplicar filtros según los valores recibidos
+                if ($request->filled('agente')) {
+                    $query->where('Agente.Agente', $request->agente);
+                }
+                if ($request->filled('anio')) {
+                    $query->where(DB::raw('SUBSTRING(Cuadernillo.Periodo, 1, 4)'), $request->anio); // Extrae el año de 'Periodo'
+                }
+                if ($request->filled('mes')) {
+                    $query->where(DB::raw('SUBSTRING(Cuadernillo.Periodo, 6, 2)'), str_pad($request->mes, 2, '0', STR_PAD_LEFT)); // Extrae el mes de 'Periodo'
+                }
+                if ($request->filled('cliente')) {
+                    $query->where('Cte.Cliente', $request->cliente);
+                }
+
+        return DataTables::of($query)
+            ->filterColumn('Nombre', function($query, $keyword) {
+                $query->where('Agente.Nombre', 'like', "%{$keyword}%");
+            })
+            ->filterColumn('NombreCorto', function($query, $keyword) {
+                $query->where('Cte.NombreCorto', 'like', "%{$keyword}%");
+            })
+            ->editColumn('Importe', function ($row) {
+                return number_format($row->Importe, 2);
+            })
+            ->editColumn('Costo', function ($row) {
+                return number_format($row->Costo, 2);
+            })
+            ->editColumn('Utilidad', function ($row) {
+                return number_format($row->Utilidad, 2);
+            })
+            ->editColumn('Rentabilidad', function ($row) {
+                return number_format($row->Rentabilidad, 2) . ' %';
+            })
+            ->make(true);
+        }
+    }
+
+    public function obtenerOpcionesSelectAgent()
+{
+    // Obtener clientes
+    $clientes = DB::table('Cte')
+        ->select('Cliente', 'NombreCorto','Poblacion')
+        ->get();
+
+    
+    // Extraer los años únicos del campo Periodo en la tabla Cuadernillo
+    $anios = DB::table('Cuadernillo')
+               ->select(DB::raw('DISTINCT(SUBSTRING(Periodo, 1, 4)) as anio'))
+               ->orderBy('anio', 'desc')
+               ->get();
+
+
+    // Meses en español
+    $meses = [
+        ['id' => 1, 'nombre' => 'Enero'],
+        ['id' => 2, 'nombre' => 'Febrero'],
+        ['id' => 3, 'nombre' => 'Marzo'],
+        ['id' => 4, 'nombre' => 'Abril'],
+        ['id' => 5, 'nombre' => 'Mayo'],
+        ['id' => 6, 'nombre' => 'Junio'],
+        ['id' => 7, 'nombre' => 'Julio'],
+        ['id' => 8, 'nombre' => 'Agosto'],
+        ['id' => 9, 'nombre' => 'Septiembre'],
+        ['id' => 10, 'nombre' => 'Octubre'],
+        ['id' => 11, 'nombre' => 'Noviembre'],
+        ['id' => 12, 'nombre' => 'Diciembre'],
+    ];
+
+    // Obtener agentes
+    $agentes = DB::table('Agente')
+        ->select('Agente', 'Nombre')
+        ->get();
+
+    return response()->json([
+        'clientes' => $clientes,
+        'anios' => $anios,
+        'meses' => $meses,
+        'agentes' => $agentes,
+    ]);
+}
 }

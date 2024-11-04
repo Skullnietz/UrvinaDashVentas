@@ -4,7 +4,7 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
 
-        <title>Laravel</title>
+        <title>Dashboard Ventas</title>
 
         <!-- Fonts -->
         <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@200;600&display=swap" rel="stylesheet">
@@ -114,7 +114,7 @@
                 <div class="links">
                     <a href="/rentautil">Utilidad y Rentabilidad</a>
                     <a href="/topsupinf">TOP SUPERIOR E INFERIOR</a>
-                    <a style="color: #d7dbd8;" href="#">VENTAS POR AGENTE</a>
+                    <a href="/ventaspermes">VENTAS POR AGENTE</a>
                 </div>
             </div>
         </div>

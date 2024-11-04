@@ -15,7 +15,7 @@
                     <a class="nav-link" href="/topsupinf">Top Superior e Inferior</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" style="color:gray" href="/ventaspermes">Ventas por Agente</a>
+                    <a class="nav-link"  href="/ventaspermes">Ventas por Agente</a>
                 </li>
                 
             </ul>
