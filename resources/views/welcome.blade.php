@@ -114,7 +114,7 @@
                 <div class="links">
                     <a href="/rentautil">Utilidad y Rentabilidad</a>
                     <a href="/topsupinf">TOP SUPERIOR E INFERIOR</a>
-                    <a href="/ventaspermes">VENTAS EN PORCENTAJE POR MES</a>
+                    <a style="color: #d7dbd8;" href="#">VENTAS POR AGENTE</a>
                 </div>
             </div>
         </div>
