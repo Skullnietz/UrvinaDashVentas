@@ -102,8 +102,10 @@ $(document).ready(function() {
                 $('#mes').append(new Option(mes.nombre, mes.id));
             });
             $.each(response.clientes, function(index, cliente) {
-                $('#cliente').append(new Option(cliente.Nombre, cliente.Cliente));
-            });
+            // Usar NombreCorto si existe, de lo contrario usar Nombre
+            var nombreCliente = cliente.NombreCorto ? cliente.NombreCorto : cliente.Nombre;
+            $('#cliente').append(new Option(nombreCliente, cliente.Cliente));
+        });
         },
         error: function(xhr) {
             console.log("Error al obtener datos de selects: " + xhr.responseText);
