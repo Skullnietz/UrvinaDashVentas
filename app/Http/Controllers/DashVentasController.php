@@ -493,52 +493,53 @@ $clientesMenorRentabilidad = $clientesMenorRentabilidadQuery->groupBy('Cte.Nombr
     {
         if ($request->ajax()) {
             $query = DB::table('Cuadernillo')
-            ->join('Cte', 'Cuadernillo.Cliente', '=', 'Cte.Cliente')
-            ->join('Agente', 'Cuadernillo.Agente', '=', 'Agente.Agente')
-            ->addSelect(
-                'Agente.Nombre',         // Selecciona el nombre del agente sin alias
-                'Cte.NombreCorto',       // Selecciona el nombre corto del cliente sin alias
-                DB::raw('SUM(Cuadernillo.Cantidad * Cuadernillo.Precio * Cuadernillo.TipoCambio) as Importe'),
-                DB::raw('SUM(Cuadernillo.Cantidad * Cuadernillo.CostoReal * Cuadernillo.TipoCambio) as Costo'),
-                DB::raw('SUM(Cuadernillo.Cantidad * Cuadernillo.Precio * Cuadernillo.TipoCambio) - SUM(Cuadernillo.Cantidad * Cuadernillo.CostoReal * Cuadernillo.TipoCambio) as Utilidad'),
-                DB::raw('(SUM(Cuadernillo.Cantidad * Cuadernillo.Precio * Cuadernillo.TipoCambio) - SUM(Cuadernillo.Cantidad * Cuadernillo.CostoReal * Cuadernillo.TipoCambio)) / NULLIF(SUM(Cuadernillo.Cantidad * Cuadernillo.CostoReal * Cuadernillo.TipoCambio), 0) * 100 as Rentabilidad')
-            )
-            ->groupBy('Agente.Nombre', 'Cte.NombreCorto');
-
+                ->join('Cte', 'Cuadernillo.Cliente', '=', 'Cte.Cliente')
+                ->join('Agente', 'Cuadernillo.Agente', '=', 'Agente.Agente')
+                ->select(
+                    'Agente.Nombre',
+                    DB::raw("CASE WHEN Cte.NombreCorto IS NOT NULL AND Cte.NombreCorto != '' THEN Cte.NombreCorto ELSE Cte.Nombre END as NombreCliente"),
+                    DB::raw('SUM(Cuadernillo.Cantidad * Cuadernillo.Precio * Cuadernillo.TipoCambio) as Importe'),
+                    DB::raw('SUM(Cuadernillo.Cantidad * Cuadernillo.CostoReal * Cuadernillo.TipoCambio) as Costo'),
+                    DB::raw('SUM(Cuadernillo.Cantidad * Cuadernillo.Precio * Cuadernillo.TipoCambio) - SUM(Cuadernillo.Cantidad * Cuadernillo.CostoReal * Cuadernillo.TipoCambio) as Utilidad'),
+                    DB::raw('(SUM(Cuadernillo.Cantidad * Cuadernillo.Precio * Cuadernillo.TipoCambio) - SUM(Cuadernillo.Cantidad * Cuadernillo.CostoReal * Cuadernillo.TipoCambio)) / NULLIF(SUM(Cuadernillo.Cantidad * Cuadernillo.CostoReal * Cuadernillo.TipoCambio), 0) * 100 as Rentabilidad')
+                )
+                ->groupBy('Agente.Nombre', 'Cte.NombreCorto', 'Cte.Nombre');
+        
             // Aplicar filtros según los valores recibidos
-                if ($request->filled('agente')) {
-                    $query->where('Agente.Agente', $request->agente);
-                }
-                if ($request->filled('anio')) {
-                    $query->where(DB::raw('SUBSTRING(Cuadernillo.Periodo, 1, 4)'), $request->anio); // Extrae el año de 'Periodo'
-                }
-                if ($request->filled('mes')) {
-                    $query->where(DB::raw('SUBSTRING(Cuadernillo.Periodo, 6, 2)'), str_pad($request->mes, 2, '0', STR_PAD_LEFT)); // Extrae el mes de 'Periodo'
-                }
-                if ($request->filled('cliente')) {
-                    $query->where('Cte.Cliente', $request->cliente);
-                }
-
-        return DataTables::of($query)
-            ->filterColumn('Nombre', function($query, $keyword) {
-                $query->where('Agente.Nombre', 'like', "%{$keyword}%");
-            })
-            ->filterColumn('NombreCorto', function($query, $keyword) {
-                $query->where('Cte.NombreCorto', 'like', "%{$keyword}%");
-            })
-            ->editColumn('Importe', function ($row) {
-                return number_format($row->Importe, 2);
-            })
-            ->editColumn('Costo', function ($row) {
-                return number_format($row->Costo, 2);
-            })
-            ->editColumn('Utilidad', function ($row) {
-                return number_format($row->Utilidad, 2);
-            })
-            ->editColumn('Rentabilidad', function ($row) {
-                return number_format($row->Rentabilidad, 2) . ' %';
-            })
-            ->make(true);
+            if ($request->filled('agente')) {
+                $query->where('Agente.Agente', $request->agente);
+            }
+            if ($request->filled('anio')) {
+                $query->where(DB::raw('SUBSTRING(Cuadernillo.Periodo, 1, 4)'), $request->anio);
+            }
+            if ($request->filled('mes')) {
+                $query->where(DB::raw('SUBSTRING(Cuadernillo.Periodo, 6, 2)'), str_pad($request->mes, 2, '0', STR_PAD_LEFT));
+            }
+            if ($request->filled('cliente')) {
+                $query->where('Cte.Cliente', $request->cliente);
+            }
+        
+            // Usar DataTables para manejar el resultado
+            return DataTables::of($query)
+                ->filterColumn('Nombre', function($query, $keyword) {
+                    $query->where('Agente.Nombre', 'like', "%{$keyword}%");
+                })
+                ->filterColumn('NombreCliente', function($query, $keyword) {
+                    $query->whereRaw("(CASE WHEN Cte.NombreCorto IS NOT NULL AND Cte.NombreCorto != '' THEN Cte.NombreCorto ELSE Cte.Nombre END) LIKE ?", ["%{$keyword}%"]);
+                })
+                ->editColumn('Importe', function ($row) {
+                    return number_format($row->Importe, 2);
+                })
+                ->editColumn('Costo', function ($row) {
+                    return number_format($row->Costo, 2);
+                })
+                ->editColumn('Utilidad', function ($row) {
+                    return number_format($row->Utilidad, 2);
+                })
+                ->editColumn('Rentabilidad', function ($row) {
+                    return number_format($row->Rentabilidad, 2) . ' %';
+                })
+                ->make(true);
         }
     }
 
