@@ -547,8 +547,9 @@ $clientesMenorRentabilidad = $clientesMenorRentabilidadQuery->groupBy('Cte.Nombr
 {
     // Obtener clientes
     $clientes = DB::table('Cte')
-        ->select('Cliente', 'NombreCorto','Poblacion')
-        ->get();
+    ->select('Cliente', 'Nombre', 'NombreCorto', 'Poblacion')
+    ->distinct() // Asegúrate de que los registros no se repitan
+    ->get();
 
     
     // Extraer los años únicos del campo Periodo en la tabla Cuadernillo
