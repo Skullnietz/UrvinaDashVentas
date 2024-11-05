@@ -102,7 +102,7 @@ $(document).ready(function() {
                 $('#mes').append(new Option(mes.nombre, mes.id));
             });
             $.each(response.clientes, function(index, cliente) {
-                $('#cliente').append(new Option(cliente.NombreCliente, cliente.Cliente));
+                $('#cliente').append(new Option(cliente.NombreCorto, cliente.Cliente));
             });
         },
         error: function(xhr) {
